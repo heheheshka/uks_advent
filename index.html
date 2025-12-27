@@ -621,6 +621,11 @@ body.is-complete .h1{
   // 1-е окошко доступно с 22 декабря 2025 в 04:00 (по локальному времени пользователя),
   // 2-е — с 23 декабря 2025 в 04:00 и так далее.
   const ADVENT_START = new Date(2025, 11, 22, 4, 0, 0, 0); // months are 0-indexed
+  // Фиксируем даты открытия для 6 и 7 окна
+  const FIXED_OPEN_AT = {
+  6: new Date(2025, 11, 28, 4, 0, 0, 0), // 29 декабря 04:00
+  7: new Date(2025, 11, 30, 4, 0, 0, 0), // 30 декабря 04:00
+};
 
   const tasks = [
     { id:1, icon:"🐴", title:"В 2026 на коне", text:`Пройди тест и узнай, кто будет тебя сопровождать в новом году. Результатом делись в комментариях к статье про адвент-календарь на Стаффе!`, link:"https://heheheshka.github.io/horse/"},
@@ -658,6 +663,19 @@ body.is-complete .h1{
     const n = Math.floor(diff / dayMs) + 1;
     return Math.max(0, Math.min(n, 7));
   }
+  function isWindowUnlocked(id, nowTs = Date.now()) {
+  const now = new Date(nowTs);
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  // Для 6 и 7 — строго по фиксированным датам
+  if (FIXED_OPEN_AT[id]) {
+    return now.getTime() >= FIXED_OPEN_AT[id].getTime();
+  }
+
+  // Для остальных — как раньше от ADVENT_START
+  const openAt = new Date(ADVENT_START.getTime() + (id - 1) * dayMs);
+  return now.getTime() >= openAt.getTime();
+}
 
   // Сбросить открытия можно так: index.html?reset=1
   const url = new URL(location.href);
@@ -702,8 +720,8 @@ body.is-complete .h1{
     const available = unlockedCount();
     for (const w of layout) {
       const task = tasks.find(t => t.id === w.id);
-      const isUnlocked = w.id <= available;
-      const isActive = w.id === Math.min(available, 7);
+      const isUnlocked = isWindowUnlocked(w.id);
+      const isActive = isUnlocked && !opened.has(w.id) && !isWindowUnlocked(w.id + 1);
       const isOpened = opened.has(w.id);
 
       const btn = document.createElement("button");
